@@ -1637,8 +1637,9 @@ function showResults() {
     }
   });
 
-  // Score calculation
-  const pctPts = score.maxPts > 0 ? Math.min(100, Math.round((score.pts / score.maxPts) * 100)) : 0;
+  // Score calculation — Points % is based on BASE points only (streak bonus shown separately, never folded into max)
+  const basePtsEarned = score.pts - streakBonus;
+  const pctPts = score.maxPts > 0 ? Math.min(100, Math.round((basePtsEarned / score.maxPts) * 100)) : 0;
   const pctAcc = questions.length > 0 ? Math.round((score.correct / questions.length) * 100) : 0;
   const combined = Math.round((pctPts + pctAcc) / 2);
 
@@ -1691,21 +1692,25 @@ function showResults() {
   document.getElementById('results-title').textContent = titleText;
   document.getElementById('results-msg').textContent = msgText;
   document.getElementById('score-big').textContent = `${score.correct} out of ${questions.length}`;
-  document.getElementById('score-pts').textContent = `🏅 ${score.pts} points earned${streakBonus>0?' (incl. '+streakBonus+' streak bonus!)':''}`;
+  document.getElementById('score-pts').textContent = `🏅 ${score.pts} points earned`;
 
   // Breakdown
   document.getElementById('score-breakdown').innerHTML = `
     <div class="breakdown-row">
       <span class="breakdown-label">✅ Correct on your own</span>
-      <span>${score.correct} questions &nbsp;<span class="breakdown-pts">${score.pts} pts</span></span>
+      <span>${score.correct} questions &nbsp;<span class="breakdown-pts">${basePtsEarned} / ${score.maxPts} pts</span></span>
     </div>
     <div class="breakdown-row">
       <span class="breakdown-label">👀 Peeked <span class="breakdown-note">(not counted)</span></span>
       <span>${score.peek} questions &nbsp;<span style="color:var(--muted)">0 pts</span></span>
     </div>
     <div class="breakdown-row">
-      <span class="breakdown-label"><strong>Total questions</strong></span>
-      <span><strong>${questions.length}</strong> &nbsp;<span class="breakdown-pts">${score.pts} / ${score.maxPts} max pts</span></span>
+      <span class="breakdown-label">🔥 Streak bonus</span>
+      <span><span class="breakdown-pts">+${streakBonus} pts</span></span>
+    </div>
+    <div class="breakdown-row">
+      <span class="breakdown-label"><strong>Total points earned</strong></span>
+      <span><strong>${score.pts} pts</strong></span>
     </div>`;
 
   // Combined score boxes
