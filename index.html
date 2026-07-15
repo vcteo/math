@@ -15,6 +15,7 @@
   --red:       #ff8787; --red-d:     #e03131; --red-bg:    #fff5f5; --red-b:    #ffd0d0;
   --orange:    #ffa94d; --orange-d:  #e67700; --orange-bg: #fff4e6; --orange-b: #ffd8a8;
   --purple:    #cc5de8; --purple-d:  #862e9c; --purple-bg: #f9f0ff; --purple-b: #e9c8ff;
+  --teal:      #38d9a9; --teal-d:    #0ca678; --teal-bg:   #e6fcf5; --teal-b:   #96f2d7;
   --correct:   #2f9e44; --wrong:     #e03131; --peek:      #f59f00;
   --text:      #1a1a2e; --muted:     #666;
   --shadow:    0 4px 24px rgba(0,0,0,0.10);
@@ -163,6 +164,12 @@ body {
 .tc-f .topic-badge { background: var(--purple-b); color: #4a0070; }
 .tc-f .topic-name { color: var(--purple-d); }
 .tc-f .diff-btn.active { background: var(--purple-d); }
+
+.tc-g { border-color: var(--teal-b); }
+.tc-g.selected { border-color: var(--teal-d); background: var(--teal-bg); }
+.tc-g .topic-badge { background: var(--teal-b); color: #004d3a; }
+.tc-g .topic-name { color: var(--teal-d); }
+.tc-g .diff-btn.active { background: var(--teal-d); }
 
 /* Q count */
 .qcount-row { display: flex; gap: 10px; margin-bottom: 28px; }
@@ -758,6 +765,21 @@ body {
         </div>
       </div>
 
+      <!-- G: Length Comparisons -->
+      <div class="topic-card tc-g" id="tc-G" onclick="toggleTopic('G')">
+        <div class="topic-card-top">
+          <span class="topic-badge">Section G</span>
+          <span class="topic-name">Length Comparisons</span>
+          <div class="topic-check" id="chk-G">✓</div>
+        </div>
+        <div class="topic-desc">Longer, shorter, total &amp; difference — word problems with cm</div>
+        <div class="diff-row" id="diff-G">
+          <button class="diff-btn active" onclick="setDiff(event,'G','easy')">⭐ Easy</button>
+          <button class="diff-btn" onclick="setDiff(event,'G','medium')">⭐⭐ Medium</button>
+          <button class="diff-btn" onclick="setDiff(event,'G','hard')">⭐⭐⭐ Hard</button>
+        </div>
+      </div>
+
     </div>
 
     <div class="setup-section-label">🔢 How Many Questions?</div>
@@ -1217,6 +1239,127 @@ function genF(diff) {
   }
 }
 
+// ---- SECTION G: Length Comparisons ----
+const LENGTH_OBJECTS = [
+  ['pencil','crayon'], ['ribbon','string'], ['table','chair'],
+  ['rope','wire'], ['book','notebook'], ['ruler','stick'],
+  ['scarf','belt'], ['ladder','pole']
+];
+
+// Simple pictorial bars (CPA "pictorial" step) — proportional coloured bars + labels.
+// Takes an array of {label, cm, colour}. Longest bar in the set is capped at 60% of
+// the container width, leaving guaranteed room for the label alongside it.
+function lengthBars(items) {
+  const maxCm = Math.max(...items.map(it => it.cm));
+  return items.map(it => {
+    const pct = Math.max(15, Math.round((it.cm / maxCm) * 60));
+    return `<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+      <div style="width:${pct}%;height:26px;background:${it.colour};border-radius:5px;flex-shrink:0"></div>
+      <span style="font-weight:700;font-size:14px;flex:1;min-width:0">${it.label}: ${it.cm} cm</span>
+    </div>`;
+  }).join('');
+}
+
+function genG(diff) {
+  const [obj1, obj2] = pick(LENGTH_OBJECTS);
+  const name = pick(NAMES);
+
+  if (diff === 'easy') {
+    // Two lengths given directly -> find total OR difference
+    const askTotal = Math.random() > 0.5;
+    const a = rnd(4, 15);
+    const b = rnd(4, 15);
+    const bars = lengthBars([
+      { label: capitalize(obj1), cm: a, colour: '#38d9a9' },
+      { label: capitalize(obj2), cm: b, colour: '#4dabf7' }
+    ]);
+    let text, answer, hint;
+    if (askTotal) {
+      answer = String(a + b);
+      text = `${name}'s ${obj1} is ${a} cm long. ${name}'s ${obj2} is ${b} cm long.${bars}What is the total length of both the ${obj1} and the ${obj2}?`;
+      hint = `Add the two lengths together: ${a} + ${b} = ?`;
+    } else {
+      const longer = a >= b ? obj1 : obj2;
+      const shorter = a >= b ? obj2 : obj1;
+      const diffVal = Math.abs(a - b);
+      answer = String(diffVal);
+      text = `${name}'s ${obj1} is ${a} cm long. ${name}'s ${obj2} is ${b} cm long.${bars}How much longer is the ${longer} than the ${shorter}?`;
+      hint = `Subtract the shorter length from the longer length to find the difference.`;
+    }
+    return { topic: 'G', diff, text, answer, hint, type: 'text' };
+
+  } else if (diff === 'medium') {
+    // One length + relationship -> find the other length, or the total
+    const base = rnd(8, 25);
+    const relDiff = rnd(2, 10);
+    const longer = Math.random() > 0.5;
+    const other = longer ? base + relDiff : base - relDiff;
+    const relWord = longer ? 'longer' : 'shorter';
+    const askOther = Math.random() > 0.5;
+
+    const bars = lengthBars([{ label: capitalize(obj1), cm: base, colour: '#38d9a9' }]);
+    let text, answer, hint;
+    if (askOther) {
+      answer = String(other);
+      text = `${name}'s ${obj1} is ${base} cm long. ${name}'s ${obj2} is ${relDiff} cm ${relWord} than the ${obj1}.${bars}How long is the ${obj2}?`;
+      hint = longer ? `Add ${relDiff} cm to ${base} cm.` : `Subtract ${relDiff} cm from ${base} cm.`;
+    } else {
+      answer = String(base + other);
+      text = `${name}'s ${obj1} is ${base} cm long. ${name}'s ${obj2} is ${relDiff} cm ${relWord} than the ${obj1}.${bars}What is the total length of the ${obj1} and the ${obj2} together?`;
+      hint = `First find the length of the ${obj2} (${longer?'add':'subtract'} ${relDiff} cm), then add both lengths together.`;
+    }
+    return { topic: 'G', diff, text, answer, hint, type: 'text' };
+
+  } else {
+    // Hard: two sub-types
+    const variant = Math.random() > 0.5 ? 'twoUnknowns' : 'threeItems';
+
+    if (variant === 'twoUnknowns') {
+      // Total + difference given -> find both lengths (like a comparison bar model)
+      const b = rnd(6, 20);
+      const d = rnd(2, 12);
+      const a = b + d; // a is the longer one
+      const total = a + b;
+      const text = `The total length of ${name}'s ${obj1} and ${obj2} is ${total} cm. The ${obj1} is ${d} cm longer than the ${obj2}. Find the length of each.`;
+      const hint = `Try: (Total − Difference) ÷ 2 = length of the ${obj2}. Then add the difference back to find the ${obj1}.`;
+      return {
+        topic: 'G', diff, text,
+        answer: `${a},${b}`,
+        hint, type: 'text',
+        multiAnswer: true,
+        labels: [`${capitalize(obj1)} (cm) =`, `${capitalize(obj2)} (cm) =`]
+      };
+    } else {
+      // Three items -> total, or difference between longest & shortest
+      const THIRD_ITEMS = ['ribbon','string','rope','wire','stick','belt','scarf','shoelace'].filter(o => o!==obj1 && o!==obj2);
+      const obj3 = pick(THIRD_ITEMS);
+      const x = rnd(5, 15), y = rnd(5, 15), z = rnd(5, 15);
+      const bars = lengthBars([
+        { label: capitalize(obj1), cm: x, colour: '#38d9a9' },
+        { label: capitalize(obj2), cm: y, colour: '#4dabf7' },
+        { label: capitalize(obj3), cm: z, colour: '#ffa94d' }
+      ]);
+      const askTotal = Math.random() > 0.5;
+      let text, answer, hint;
+      if (askTotal) {
+        answer = String(x + y + z);
+        text = `${name} has a ${obj1} (${x} cm), a ${obj2} (${y} cm), and a ${obj3} (${z} cm).${bars}What is the total length of all three items?`;
+        hint = `Add all three lengths together: ${x} + ${y} + ${z} = ?`;
+      } else {
+        const vals = [{n:obj1,v:x},{n:obj2,v:y},{n:obj3,v:z}];
+        const maxItem = vals.reduce((p,c)=>c.v>p.v?c:p);
+        const minItem = vals.reduce((p,c)=>c.v<p.v?c:p);
+        answer = String(maxItem.v - minItem.v);
+        text = `${name} has a ${obj1} (${x} cm), a ${obj2} (${y} cm), and a ${obj3} (${z} cm).${bars}What is the difference between the longest and the shortest item?`;
+        hint = `Find the longest item and the shortest item, then subtract.`;
+      }
+      return { topic: 'G', diff, text, answer, hint, type: 'text' };
+    }
+  }
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
 // ============================================================
 // TOPIC CONFIG
 // ============================================================
@@ -1227,6 +1370,7 @@ const TOPIC_CONFIG = {
   D: { label: 'Error Correction',colour: 'var(--red-d)',    bg: 'var(--red-bg)',    border: 'var(--red-b)',    badgeBg: '#ffd0d0', badgeColor: '#7a0000' },
   E: { label: 'Hidden Numbers',  colour: 'var(--orange-d)', bg: 'var(--orange-bg)', border: 'var(--orange-b)', badgeBg: '#ffd8a8', badgeColor: '#7a3800' },
   F: { label: 'Shape Algebra',   colour: 'var(--purple-d)', bg: 'var(--purple-bg)', border: 'var(--purple-b)', badgeBg: '#e9c8ff', badgeColor: '#4a0070' },
+  G: { label: 'Length Comparisons', colour: 'var(--teal-d)', bg: 'var(--teal-bg)', border: 'var(--teal-b)', badgeBg: '#96f2d7', badgeColor: '#004d3a' },
 };
 
 // ============================================================
@@ -1274,7 +1418,8 @@ function buildQuestions() {
     else if (t==='C') q=genC(diff);
     else if (t==='D') q=genD(diff);
     else if (t==='E') q=genE(diff);
-    else q=genF(diff);
+    else if (t==='F') q=genF(diff);
+    else q=genG(diff);
     qs.push(q);
   }
   // Shuffle
